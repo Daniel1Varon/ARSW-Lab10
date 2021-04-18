@@ -1,6 +1,8 @@
 ### Escuela Colombiana de Ingeniería
 ### Arquitecturas de Software - ARSW
 
+### Brayan Burgos - Daniel Varón
+
 ## Escalamiento en Azure con Maquinas Virtuales, Sacale Sets y Service Plans
 
 ### Dependencias
@@ -50,19 +52,29 @@ Cuando un conjunto de usuarios consulta un enésimo número (superior a 1000000)
 
 7. La función que calcula en enésimo número de la secuencia de Fibonacci está muy mal construido y consume bastante CPU para obtener la respuesta. Usando la consola del Browser documente los tiempos de respuesta para dicho endpoint usando los siguintes valores:
     * 1000000
+      ![Imágen 1](imgP1/1000000.JPG)
     * 1010000
+      ![Imágen 1](imgP1/1010000.JPG)
     * 1020000
+      ![Imágen 1](imgP1/1020000.JPG)
     * 1030000
+      ![Imágen 1](imgP1/1030000.JPG)
     * 1040000
+      ![Imágen 1](imgP1/1040000.JPG)
     * 1050000
+      ![Imágen 1](imgP1/1050000.JPG)
     * 1060000
+      ![Imágen 1](imgP1/1060000.JPG)
     * 1070000
+      ![Imágen 1](imgP1/1070000.JPG)
     * 1080000
-    * 1090000    
+      ![Imágen 1](imgP1/1080000.JPG)
+    * 1090000
+      ![Imágen 1](imgP1/1090000.JPG)
 
 8. Dírijase ahora a Azure y verifique el consumo de CPU para la VM. (Los resultados pueden tardar 5 minutos en aparecer).
 
-![Imágen 2](images/part1/part1-vm-cpu.png)
+![Imágen 2](imgP1/consumoCpu.JPG)
 
 9. Ahora usaremos Postman para simular una carga concurrente a nuestro sistema. Siga estos pasos.
     * Instale newman con el comando `npm install newman -g`. Para conocer más de Newman consulte el siguiente [enlace](https://learning.getpostman.com/docs/postman/collection-runs/command-line-integration-with-newman/).
@@ -74,13 +86,52 @@ Cuando un conjunto de usuarios consulta un enésimo número (superior a 1000000)
     newman run ARSW_LOAD-BALANCING_AZURE.postman_collection.json -e [ARSW_LOAD-BALANCING_AZURE].postman_environment.json -n 10 &
     newman run ARSW_LOAD-BALANCING_AZURE.postman_collection.json -e [ARSW_LOAD-BALANCING_AZURE].postman_environment.json -n 10
     ```
+![Imágen 2](imgP1/CargaConcurrentePostman.JPG)
 
 10. La cantidad de CPU consumida es bastante grande y un conjunto considerable de peticiones concurrentes pueden hacer fallar nuestro servicio. Para solucionarlo usaremos una estrategia de Escalamiento Vertical. En Azure diríjase a la sección *size* y a continuación seleccione el tamaño `B2ms`.
 
 ![Imágen 3](images/part1/part1-vm-resize.png)
 
 11. Una vez el cambio se vea reflejado, repita el paso 7, 8 y 9.
+   
+   Paso 7 con Escalamiento vertical:
+   * 1000000
+     ![Imágen 1](imgP1/1000000Esc.JPG)
+   * 1010000
+     ![Imágen 1](imgP1/1010000Esc.JPG)
+   * 1020000
+     ![Imágen 1](imgP1/1020000Esc.JPG)
+   * 1030000
+     ![Imágen 1](imgP1/1030000Esc.JPG)
+   * 1040000
+     ![Imágen 1](imgP1/1040000Esc.JPG)
+   * 1050000
+     ![Imágen 1](imgP1/1050000Esc.JPG)
+   * 1060000
+     ![Imágen 1](imgP1/1060000Esc.JPG)
+   * 1070000
+     ![Imágen 1](imgP1/1070000Esc.JPG)
+   * 1080000
+     ![Imágen 1](imgP1/1080000Esc.JPG)
+   * 1090000
+     ![Imágen 1](imgP1/1090000Esc.JPG)
+
+Consumo de CPU con Escalamiento Vertical del punto 7:
+Se puede evidenciar la disminución aproximadamente de la mitad del consumo de la CPU en la VM.
+![Imágen 1](imgP1/consumoCpuEsc.JPG)
+
+
+Carga Concurrente (Punto 9) con Escalamiento Vertical:
+![Imágen 1](imgP1/CargaConcurrentePostmanEsc.JPG)
+
+Consumo de CPU de Carga Concurrente con Escalamiento Vertical:
+![Imágen 1](imgP1/ConsumoPostmanEsc.JPG)
+
+
 12. Evalue el escenario de calidad asociado al requerimiento no funcional de escalabilidad y concluya si usando este modelo de escalabilidad logramos cumplirlo.
+    
+Ya que el consumo de la CPU en los casos de prueba no pasa del 50% se puede decir que la calidad se logra cumplir ya que no sobrepasa el 70% con el escalamiento vertical aunque para solucionarlo deberiamos incurrir en gastos que son casi 20 veces de lo que era el costo sin el escalamiento vertical.
+
 13. Vuelva a dejar la VM en el tamaño inicial para evitar cobros adicionales.
 
 **Preguntas**
