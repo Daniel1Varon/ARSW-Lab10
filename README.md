@@ -107,7 +107,8 @@ y el consumo de CPU del sistema no puede superar el 70%.
     newman run ARSW_LOAD-BALANCING_AZURE.postman_collection.json -e [ARSW_LOAD-BALANCING_AZURE].postman_environment.json -n 10
     ```
 
-![Imágen 2](imgP1/CargaConcurrentePostman.JPG)
+![Imágen 2](imgP1/2Concurrente1.JPG)
+![Imágen 2](imgP1/2Concurrente2.JPG)
 
 10. La cantidad de CPU consumida es bastante grande y un conjunto considerable de peticiones concurrentes pueden hacer
     fallar nuestro servicio. Para solucionarlo usaremos una estrategia de Escalamiento Vertical. En Azure diríjase a la
@@ -200,9 +201,12 @@ La imagen se adjunto anteriormente y evidencia el proceso iterativo de búsqueda
 6. Adjunte la imagen del resumen de la ejecución de Postman. Interprete:
     * Tiempos de ejecución de cada petición.
         
-        Los tiempos fueron adjuntos anteriormente, no se evidenciaron fallos y los tiempos son muy similares a diferencia de unos milisegundos de más o de menos.
+        Los tiempos fueron adjuntos anteriormente, los tiempos varian ya que al poner solo 2 procesos concurrentes cambia de 24 segundos en promedio a 49 segundos, y el tiempo total cambia de 3 minutos a 5 minutos.    
     
     * Si hubo fallos documentelos y explique.
+    
+        Se ve constantemente un error read ECONNRESET lo cual significa que algunas conexiones se queden colgadas o no se complete correctamente.
+
 7. ¿Cuál es la diferencia entre los tamaños `B2ms` y `B1ls` (no solo busque especificaciones de infraestructura)?
 
 Para ver las diferencias entre los dos tamaños se presenta una tabla explicativa:
@@ -229,10 +233,7 @@ En el consumo de CPU si hubo una mejoria notable ya que el uso medio de este dis
 11. Aumente la cantidad de ejecuciones paralelas del comando de postman a `4`. ¿El comportamiento del sistema es
     porcentualmente mejor?
     
-No, sigue igual en cuanto a tiempos y sigue usando con un tamaño pequeño casi el 100% de la CPU.
-![](imgP1/CargaConcurrente4.JPG)
-
-![](imgP1/consumo4.JPG)
+No, al tener 4 ejecuciones paralelas se tarda en recibir respuesta y envia un error.
 
 ### Parte 2 - Escalabilidad horizontal
 
@@ -322,6 +323,15 @@ http://52.155.223.248/fibonacci/1
    contraste: tiempos de respuesta, cantidad de peticiones respondidas con éxito, costos de las 2 infraestrucruras, es
    decir, la que desarrollamos con balanceo de carga horizontal y la que se hizo con una maquina virtual escalada.
 
+![](imgP2/2Concurrente.JPG)
+
+Se evidencia la diferencia entre los resultados de la parte 1 y este resultado ya que se tienen resultados como los siguientes:
+
+| Tipo | Request | Failed | promedio duración total | promedio tiempo de respuesta |
+|------|---------|--------|-------------------------|------------------------------|
+| Escalamiento vertical| 20 | 8| 5m 24.5s | 41.4s|
+| Escalamiento horizontal| 20 | 0| 3m 95s| 25.5s|
+
 3. Agregue una 4 maquina virtual y realice las pruebas de newman, pero esta vez no lance 2 peticiones en paralelo, sino
    que incrementelo a 4. Haga un informe donde presente el comportamiento de la CPU de las 4 VM y explique porque la
    tasa de éxito de las peticiones aumento con este estilo de escalabilidad.
@@ -333,21 +343,58 @@ newman run ARSW_LOAD-BALANCING_AZURE.postman_collection.json -e [ARSW_LOAD-BALAN
 newman run ARSW_LOAD-BALANCING_AZURE.postman_collection.json -e [ARSW_LOAD-BALANCING_AZURE].postman_environment.json -n 10
 ```
 
+Ya que la Zona de disponibilidad tiene solo valores de 1 a 3 y no se crea la cuarta petición en paralelo generando errores por timeout.
+
 **Preguntas**
 
 * ¿Cuáles son los tipos de balanceadores de carga en Azure y en qué se diferencian?, ¿Qué es SKU, qué tipos hay y en qué
   se diferencian?, ¿Por qué el balanceador de carga necesita una IP pública?
+
+Los balanceadores en azure se pueden configurar de dos tipos, como balanceador público o interno. El público tendra una IP pública en el frontend en la que recibirá peticiones que repartira en las maquinas del backend y el interno hara lo mismo pero no con una IP pública sino privada lo cual no la hace accesible desde intenet.
+
+SKU sinifica Stock-keeping-Unit(Unidad de mantenimiento de existencias) basicamente significa un articulo que esta en oferta. Además los balanceadores existen de dos tipos, basico y estandard los cuales se diferencian por su soporte, precio, protocolos disponibles y configuraciones avanzadas.
+
+El balanceador de carga necesita una IP publica para poder recibir peticiones en el frontend desde internet y no solo privadamente.
+
+
 * ¿Cuál es el propósito del *Backend Pool*?
+
+El proposito del Backend Pool(grupo de backend) es un componente critico del balanceador de carga. El grupo de backend define el grupo de recursos que brindarán tráfico para una regla de equilibrio de carga determinada.
+
 * ¿Cuál es el propósito del *Health Probe*?
+  
+El proposito del Health Probe es detectar el estado del punto de conexión del backend, esta determina que instancias del grupo de backend recibirán nuevos flujos.
+
 * ¿Cuál es el propósito de la *Load Balancing Rule*? ¿Qué tipos de sesión persistente existen, por qué esto es
   importante y cómo puede afectar la escalabilidad del sistema?.
+
+El balanceador de carga distribuye los flujos entrantes que llegan al frontend del balanceador a las instanceas de backend. Estos flujos están de acuerdo con las reglas de equilibrio de carga(Load Balancing Rule) y las sondas de estado (Health Probe). En esta se define que version del protoloco IP se usara (IPv4 o IPv6), la IP del frontend, el protocolo de conexión usado (TPC o UPD), el puerto en el que correra (por defecto el 80), El puerto del backend, se define el backend pool y el health probe.
+
+Existen 3 tipos de sesión persistente:
+
+    * None(hash-based): Especifica que las solicitudes sucesivas del mismo cliente pueden ser manejadas por cualquier máquina virtual.
+    * Client IP (source IP affinity two-tuple): Especifica que las solicitudes sucesivas de la misma dirección IP de cliente serán manejadas por la misma máquina virtual.
+    * Client IP and protocol (source IP affinity three-tuple): Especifica que las solicitudes sucesivas de la misma combinación de protocolo y dirección IP de cliente serán manejadas por la misma máquina virtual. 
+
+Esto es importante ya que se puede sobrecargar una maquina virtual si se configura mal mientras que las otras maquina esten libres.
+
 * ¿Qué es una *Virtual Network*? ¿Qué es una *Subnet*? ¿Para qué sirven los *address space* y *address range*?
-* ¿Qué son las *Availability Zone* y por qué seleccionamos 3 diferentes zonas?. ¿Qué significa que una IP sea *
-  zone-redundant*?
+  
+La red virutal(Virtual Network) crea una red privada en la nube conectando asi servicios y recursos.
+
+La subnet es una subred en la cual se van a tener unos recursos definidos dentro de la red.
+
+La address space especifica las IP que podran ser usadas y el address range sirve para añadir una subred a esa red principal.
+
+* ¿Qué son las *Availability Zone* y por qué seleccionamos 3 diferentes zonas?. ¿Qué significa que una IP sea *zone-redundant*?
+  
+Las Availability Zone son zonas de alta disponibilidad, estas estan disponibles sin coprometer la residencia de datos, se puede acceder a estos incluso en caso de errores en el centro de datos principal, ademas satisface necesidades de alta disponibilidad y respalda la copia de seguridad. 
+
+Una IP zone-redundant es una IP que esta replicada en varias zonas de disponibilidad.
+
 * ¿Cuál es el propósito del *Network Security Group*?
+
+Un grupo de seguridad de red contiene reglas de seguridad que permiten o deniegan el tráfico de red entrante o el tráfico de red saliente de varios tipos de recursos de Azure.
+
 * Informe de newman 1 (Punto 2)
 * Presente el Diagrama de Despliegue de la solución.
-
-
-
-
